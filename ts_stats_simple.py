@@ -2,6 +2,7 @@ import sys
 import os
 import argparse
 import json
+import time
 import pathlib
 import SimpleITK as sitk
 import pandas as pd
@@ -9,6 +10,7 @@ import numpy as np
 from totalsegmentator.statistics import get_radiomics_features
 from totalsegmentator.map_to_binary import class_map
 import tempfile
+import radiomics
 
 def split_path_into_subdirectories(path):
   """Splits a path into a list of its subdirectories."""
@@ -30,10 +32,8 @@ def split_path_into_subdirectories(path):
 def parse_image_filename(img_name):
 
     fname = os.path.abspath(img_name)
-    #img_dirname = os.path.dirname(fname)
-    #img_basename = os.path.basename(fname)
-
     parts = split_path_into_subdirectories(fname)
+
     dat={}
     dat["pmbb_vision_id"] = parts[7]
     dat["accession_number"] = parts[8]
@@ -159,43 +159,70 @@ def mask_on_border(img):
         return True   
     return False
 
-def get_radiomics_stats(img_name, seg_name, names, values):
+def get_radiomics_stats(img, seg, names, values):
 
-    seg = sitk.ReadImage(seg_name)
-    odir = os.path.dirname(os.path.abspath(seg_name))
-    obase = os.path.basename(seg_name).split('.')[0]
-
-    tbase=None
-    if 'LSB_JOB_TMPDIR' in os.environ:
-        tbase = os.environ["LSB_JOB_TMPDIR"]
-    else:
-        tbase = "/tmp"
-    tdir = tempfile.TemporaryDirectory(dir=tbase, prefix=obase)
-
-    dat={}
+    dict={}
     for name, value in zip(names, values):
 
-        iname = os.path.join(tdir.name, obase+'_'+str(name)+'.nii.gz')
+        #print(str(value) + " " + name)
         imask = seg==value
 
         if len(np.unique(sitk.GetArrayViewFromImage(imask))) > 1:
-            sitk.WriteImage(imask, iname)
-            #print("Rad stats for "+name)
-            (label_name, istats) = get_radiomics_features(pathlib.Path(iname),pathlib.Path(img_name))
-            on_border = mask_on_border(imask)
-            istats['shape_OnBorder']=int(on_border)
-            os.remove(iname)
-            dat[name]=istats
-        
-    tdir.cleanup()
+            stats1=radiomics.firstorder.RadiomicsFirstOrder(img,imask).execute()
+            stats2=radiomics.shape.RadiomicsShape(img,imask).execute()
+        idict={}
+        for k in stats1.keys():
+            idict['firstorder_'+k] = stats1[k]
+        for k in stats2.keys():
+            idict['shape_'+k] = stats2[k]
+        dict[name]=idict
 
-    return(dat)
+    return(dict)
+
+def get_firstorder_stats(img, mask, names, values):
+
+    stats = sitk.LabelIntensityStatisticsImageFilter()
+    stats.SetBackgroundValue(0)
+    stats.ComputeFeretDiameterOff()
+    stats.ComputePerimeterOff()
+
+    dat={}
+
+    try:
+        stats.Execute( mask, img )
+
+        index=0
+        for name, value in zip(names, values):
+            ival=int(value)
+
+            if stats.HasLabel(value):
+                dict={}
+                dict["firstorder_Mean"] = stats.GetMean(ival)
+                dict["firstorder_Minimum"] = stats.GetMinimum(ival)
+                dict["firstorder_Maximum"] = stats.GetMaximum(ival)
+                dict["firstorder_Median"] = stats.GetMedian(ival)
+                dict["firstorder_StandardDeviation"] = stats.GetStandardDeviation(ival)
+                dict["firstorder_Skewness"] = stats.GetSkewness(ival)
+
+                dict["shape_Volume"] = stats.GetPhysicalSize(ival)
+                dict["shape_NumberOfPixels"] = stats.GetNumberOfPixels(ival)
+                dict["shape_GetNumberOfPixelsOnBorder"] = stats.GetNumberOfPixelsOnBorder(ival)
+
+                dat[name]=dict
+
+            index+=1
+    except RuntimeError as e:
+        print("Exception occured in get_firstorder_stats(): " + str(e))
+        return None
+
+    return dat
+
 
 def get_shape_stats(img, mask, names, values):
 
     stats = sitk.LabelIntensityStatisticsImageFilter()
     stats.SetBackgroundValue(0)
-    stats.ComputeFeretDiameterOn()
+    stats.ComputeFeretDiameterOff()
     stats.ComputePerimeterOn()
     #stats.ComputeOrientedBoundingBoxOff() # v2.4.0
 
@@ -211,6 +238,7 @@ def get_shape_stats(img, mask, names, values):
             #on_border = mask_on_border(imask)
 
             if stats.HasLabel(value):
+                #print(name)
                 dict={}
                 dict["firstorder_Mean"] = stats.GetMean(ival)
                 dict["firstorder_Minimum"] = stats.GetMinimum(ival)
@@ -220,8 +248,8 @@ def get_shape_stats(img, mask, names, values):
                 dict["firstorder_Skewness"] = stats.GetSkewness(ival)
 
                 dict["shape_Volume"] = stats.GetPhysicalSize(ival)
-                dict["shape_GetNumberOfPixelsOnBorder"] = stats.GetNumberOfPixelsOnBorder(ival)
                 dict["shape_NumberOfPixels"] = stats.GetNumberOfPixels(ival)
+
                 dict["shape_Roundness"] = stats.GetRoundness(ival)
                 dict["shape_Elongation"] = stats.GetElongation(ival)
                 dict["shape_Flatness"] = stats.GetFlatness(ival)
@@ -233,8 +261,7 @@ def get_shape_stats(img, mask, names, values):
                 dict["shape_EquivalentEllipsoidDiameter2"] = stats.GetEquivalentEllipsoidDiameter(ival)[2]
                 dict["shape_EquivalentSphericalRadius"] = stats.GetEquivalentSphericalRadius(ival)
                 dict["shape_EquivalentSphericalPerimeter"] = stats.GetEquivalentSphericalPerimeter(ival)
-
-                dict["shape_FeretDiameter"] = stats.GetFeretDiameter(ival)
+                #dict["shape_FeretDiameter"] = stats.GetFeretDiameter(ival)
                 
                 dict["shape_GetNumberOfPixelsOnBorder"] = stats.GetNumberOfPixelsOnBorder(ival)
                 dict["shape_PerimeterOnBorder"] = stats.GetPerimeterOnBorder(ival)
@@ -256,8 +283,9 @@ def main():
 
     my_parser = argparse.ArgumentParser(description='Summarize processed directory')
     my_parser.add_argument('-i', '--input', type=str, help='input ct image', required=True)
-    my_parser.add_argument('-o', '--output', type=str, help='output csv', required=True)
+    my_parser.add_argument('-o', '--output', type=str, help='output csv', nargs='+', required=True)
     my_parser.add_argument('-s', '--seg', type=str, help='merged seg', required=True)
+    my_parser.add_argument('-e', '--effusion', type=str, help='effusion labels', required=False)
     my_parser.add_argument('-m', '--meta', action='store_true', default=False, required=False)
     args = my_parser.parse_args()
 
@@ -288,14 +316,24 @@ def main():
     #if args.meta:
     #    json_stats = get_json_stats(json_name)
 
-    #print("get_radiomics_stats")
-    rad_stats = get_radiomics_stats(args.input, args.seg, class_map['total'].values(),class_map['total'].keys())
+    print("get_radiomics_stats")
+    t1 = time.perf_counter()
+    #rad_stats = get_radiomics_stats(args.input, args.seg, class_map['total'].values(),class_map['total'].keys())
+    rad_stats = get_radiomics_stats(img,seg,class_map['total'].values(),class_map['total'].keys())
     #rad_stats=[]
+    t2 = time.perf_counter()
+    rad_time=t2-t1
+    print(f"radiomics run time: {rad_time} seconds")
 
-    #print("get_simpleitk_stats")
+    print("get_simpleitk_stats")
+    t3 = time.perf_counter()
     sitk_stats = get_shape_stats(img,seg,class_map['total'].values(),class_map['total'].keys())
-    
+    t4 = time.perf_counter()    
+    itk_time=t4-t3
+    print(f"SimpleITK run time: {itk_time} seconds")
+
     row_dat = []
+    row_dat_eff = []
 
     mydict = class_map['total']
     for idx in class_map['total'].keys():
@@ -312,12 +350,11 @@ def main():
                 row['labels_filename'] = os.path.basename(args.seg)
                 row['label_name'] = n
                 row['label_number'] = idx
-                row['label_system'] = 'totalsegmentator'
+                row['label_system'] = 'totalsegmentator_total_ct'
                 row['calculator'] = 'pyradiomics'
                 row['measure'] = stat.split('_')[0]
                 row['metric'] = stat.split('_')[1]
                 row['value'] = str(rad_stats[n][stat])
-                #print( n + " " + stat + " " + str(rad_stats[n][stat]) )
                 row_dat.append(row)
         if n in sitk_stats:
             for stat in sitk_stats[n].keys():
@@ -331,18 +368,53 @@ def main():
                 row['labels_filename'] = os.path.basename(args.seg)
                 row['label_name'] = n
                 row['label_number'] = idx
-                row['label_system'] = 'totalsegmentator'
+                row['label_system'] = 'totalsegmentator_total_ct'
                 row['calculator'] = "simpleitk"
                 row['measure'] = stat.split('_')[0]
                 row['metric'] = stat.split('_')[1]
                 row['value'] = str(sitk_stats[n][stat])
-                #print( n + " " + stat + " " + str(sitk_stats[n][stat]))
+
                 row_dat.append(row)
     
+    if args.effusion:
+        eff = sitk.ReadImage(args.effusion)
+        eff_names = ['pleural_effusion', 'pericardial_effusion']
+        eff_values = [2,3]
+        eff_stats = get_firstorder_stats(img,eff,eff_names,eff_values)
+        count=0
+
+        for n in eff_names:
+            idx=eff_values[count]
+            count=count+1
+
+            if n in eff_stats:
+                for stat in eff_stats[n].keys():
+                    row = get_data_row()
+                    row['id'] = img_info['pmbb_vision_id']
+                    row['accession_number'] = img_info['accession_number']
+                    row['study_uid'] = img_info['study_uid']
+                    row['series_number'] = img_info['series_number']
+                    row['series_name'] = img_info['series_name']
+                    row['image_filename'] = os.path.basename(args.input)
+                    row['labels_filename'] = os.path.basename(args.seg)
+                    row['label_name'] = n
+                    row['label_number'] = idx
+                    row['label_system'] = 'totalsegmentator_pleural_pericardial_effusion'
+                    row['calculator'] = "simpleitk"
+                    row['measure'] = stat.split('_')[0]
+                    row['metric'] = stat.split('_')[1]
+                    row['value'] = str(eff_stats[n][stat])
+
+                    row_dat_eff.append(row)
+
     df = pd.DataFrame.from_dict(row_dat)
+    df_eff = pd.DataFrame.from_dict(row_dat_eff)
 
     if df.size > 0:
-        df.to_csv(args.output, index=False, na_rep='NA')
+        df.to_csv(args.output[0], index=False, na_rep='NA')
+
+    if df_eff.size > 0:
+        df_eff.to_csv(args.output[1], index=False, na_rep='NA')
 
 
 if __name__=="__main__":

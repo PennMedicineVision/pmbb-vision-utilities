@@ -10,6 +10,7 @@ reconbase="/cbica/projects/pmbb-vision/subjects"
 inputfile=""
 subject=""
 
+
 while getopts d:hi:s:r: flag
 do 
   case "${flag}" in

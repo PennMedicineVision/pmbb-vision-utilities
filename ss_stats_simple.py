@@ -218,7 +218,7 @@ def get_radiomics_stats(img, seg, names, values):
 
         #print(str(value) + " " + name)
         #imask = seg==value
-        imask = sitk.BinaryThreshold(seg,value,value,1,0)
+        imask = sitk.BinaryThreshold(seg,float(value),float(value),1,0)
 
         if len(np.unique(sitk.GetArrayViewFromImage(imask))) > 1:
             stats1=radiomics.firstorder.RadiomicsFirstOrder(img,imask).execute()

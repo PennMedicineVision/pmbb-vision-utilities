@@ -381,7 +381,7 @@ def main():
     for idx, label in enumerate(values):
         nm = names[idx]
         if nm in rad_stats:
-            for stat in rad_stats[n].keys():
+            for stat in rad_stats[nm].keys():
                 row = get_data_row()
                 row['id'] = img_info['pmbb_vision_id']
                 row['accession_number'] = img_info['accession_number']
@@ -399,7 +399,7 @@ def main():
                 row['value'] = str(rad_stats[nm][stat])
                 row_dat.append(row)
         if nm in sitk_stats:
-            for stat in sitk_stats[n].keys():
+            for stat in sitk_stats[nm].keys():
                 row = get_data_row()
                 row['id'] = img_info['pmbb_vision_id']
                 row['accession_number'] = img_info['accession_number']

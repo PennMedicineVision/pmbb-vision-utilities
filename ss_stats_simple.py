@@ -143,16 +143,18 @@ def split_path_into_subdirectories(path):
   return all_parts
 
 #/cbica/projects/pmbb-vision/subjects/A123/4567/PMBBIDA1234567XXX/Accession/StudyUID/PMBBID_Accession_Date_SeriesNum_SeriesName/PMBBID_Accession_Date_SeriesNum_SeriesName_ext.nii.gz
+
+# /cbica/projects/pmbb-vision/processing/synthseg/A100/9169/PMBBA1009169679/31575492/2.25.160417019112203539104154602063221533907/PMBBA1009169679_31575492_20240813000000_11001_AXIAL_DTI_30_DIRECTIONS_BRAIN_TRACEW/PMBBA1009169679_31575492_20240813000000_11001_AXIAL_DTI_30_DIRECTIONS_BRAIN_TRACEW_resampled.nii.gz
 def parse_image_filename(img_name):
 
     fname = os.path.abspath(img_name)
     parts = split_path_into_subdirectories(fname)
 
     dat={}
-    dat["pmbb_vision_id"] = parts[7]
-    dat["accession_number"] = parts[8]
-    dat["study_uid"] = parts[9]
-    series_info = parts[10]
+    dat["pmbb_vision_id"] = parts[8]
+    dat["accession_number"] = parts[9]
+    dat["study_uid"] = parts[10]
+    series_info = parts[11]
     sparts=series_info.split('_')
 
     dat["series_number"] = sparts[3]

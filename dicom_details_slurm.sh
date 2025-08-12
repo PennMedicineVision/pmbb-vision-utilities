@@ -237,7 +237,7 @@ function clean_value() {
 
 
 function write_row() {
-  val=$(clean_value $9)
+  val=$(clean_value "$9")
   if [ "$val" != "NA" ]; then
     echo "$2,$3,$4,$5,$6,$7,$8,$val" >> $1
   fi
@@ -263,24 +263,24 @@ function write_dicom_rows() {
   stime=`cat $tfile | grep  -a "(0008,0031)" | cut -d "[" -f2 | cut -d "]" -f1 | xargs`
   manu=`cat $tfile | grep -a "(0008,0070)" | head -n 1 | cut -d "[" -f2 | cut -d "]" -f1 | xargs`
   sex=`cat $tfile | grep  -a "(0010,0040)" | cut -d "[" -f2 | cut -d "]" -f1 | xargs`
-  stud=`cat $tfile | grep  -a "(0008,1030)" | cut -d "[" -f2 | cut -d "]" -f1`
+  stud=`cat $tfile | grep  -a "(0008,1030)" | cut -d "[" -f2 | cut -d "]" -f1 | xargs`
   model=`cat $tfile | grep  -a "(0008,1090)" | cut -d "[" -f2 | cut -d "]" -f1 | xargs`
   stamp="${date}${stime}"
   body_brief=$(frankenstein $body)
 
 
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name NA SeriesTimestamp $stamp
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x0021 SeriesDate $date
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x0031 SeriesTime $stime
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x0070 Manufacturer $manu
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x0060  ModelName $model
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x1030  StudyDescription $stud
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0015  BodyPartExamined $body
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name NA BodyPart $body_brief
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0010x0040  PatientsSex $sex
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x0060  Modality $mod
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x1032_0008x0100 ProcedureCode $code
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x1032_0008x0104 ProcedureCodeMeaning $codename
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name NA SeriesTimestamp "$stamp"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x0021 SeriesDate "$date"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x0031 SeriesTime "$stime"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x0070 Manufacturer "$manu"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x1090 ModelName "$model"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x1030 StudyDescription "$stud"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0015 BodyPartExamined "$body"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name NA BodyPart "$body_brief"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0010x0040 PatientsSex "$sex"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x0060 Modality "$mod"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x1032_0008x0100 ProcedureCode "$code"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x1032_0008x0104 ProcedureCodeMeaning "$codename"
 
   return
 }
@@ -306,16 +306,16 @@ function write_image_rows() {
   in_acq=`cat $tfile | grep  -a "(0020,1002)" | cut -d " " -f3 | xargs`  
   itype=`cat $tfile | grep  -a "(0008,0008)" | cut -d "[" -f2 | cut -d "]" -f1`
   
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x0008 ImageType ${itype} 
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x0010 Rows $rows
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x0011 Cols $cols
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x0030[0] PixelSpacingX $spacing_x
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x0030[1] PixelSpacingY $spacing_y
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x0106 LowestPixelValue $lowpix
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x0107 HighestPixelValue $bigpix
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0050 SliceThickness $thickness
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0088 SpacingBetweenSlices $between 
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0020x1002 ImagesInAcquisition $in_acq
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0008x0008 ImageType "${itype}" 
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x0010 Rows "$rows"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x0011 Cols "$cols"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x0030[0] PixelSpacingX "$spacing_x"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x0030[1] PixelSpacingY "$spacing_y"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x0106 LowestPixelValue "$lowpix"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x0107 HighestPixelValue "$bigpix"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0050 SliceThickness "$thickness"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0088 SpacingBetweenSlices "$between" 
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0020x1002 ImagesInAcquisition "$in_acq"
 
   return
 
@@ -343,16 +343,16 @@ function write_contrast_rows() {
   ingredient=`cat $tfile | grep  -a "(0018,1048)" | cut -d "[" -f2 | cut -d "]" -f1 | xargs`
   concentration=`cat $tfile | grep  -a "(0018,1049)" | cut -d "[" -f2 | cut -d "]" -f1 | xargs`
 
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0010 ContrastBolusAgent $agent
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0040 ContrastBolusRoute $route
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1041 ContrstBolusVolume $volume
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1042 ContrastBolusStartTime $start_time
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1043 ContrastBolusStopTime $stop_time
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1044 ContrastBolusTotalDose $does
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1046 ContrastBolusRate $rate
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1047 ContrastBolusDuration $duration
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1048 ContrastBolusIngredient $ingredient
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1049 ContrastBolusIngredientConcentration $concentration
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0010 ContrastBolusAgent "$agent"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0040 ContrastBolusRoute "$route"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1041 ContrstBolusVolume "$volume"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1042 ContrastBolusStartTime "$start_time"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1043 ContrastBolusStopTime "$stop_time"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1044 ContrastBolusTotalDose "$does"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1046 ContrastBolusRate "$rate"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1047 ContrastBolusDuration "$duration"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1048 ContrastBolusIngredient "$ingredient"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1049 ContrastBolusIngredientConcentration "$concentration"
 
   return
 
@@ -376,12 +376,12 @@ function write_ct_rows() {
   slope=`cat $tfile | grep  -a "(0028,1053)" | cut -d "[" -f2 | cut -d "]" -f1 | xargs`
   restype=`cat $tfile | grep  -a "(0028,1054)" | cut -d "[" -f2 | cut -d "]" -f1 | xargs`
 
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0060 KVP $kvp
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1152 Exposure $exposure
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1210 ConvolutionKernel $conv
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x1053 RescaleSlope $slope
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x1051 RescaleIntercept $intercept
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x1054 RescaleType $restype
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0060 KVP "$kvp"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1152 Exposure "$exposure"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1210 ConvolutionKernel "$conv"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x1053 RescaleSlope "$slope"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x1051 RescaleIntercept "$intercept"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0028x1054 RescaleType "$restype"
 
   return
 
@@ -409,17 +409,17 @@ function write_mr_rows() {
   tpos=`cat $tfile | grep  -a "(0020,0105)" | cut -d "[" -f2 | cut -d "]" -f1 | xargs`
   tres=`cat $tfile | grep  -a "(0020,0110)" | cut -d "[" -f2 | cut -d "]" -f1 | xargs`
 
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0080 RepetitionTime $rept
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0081 EchoTime $echot
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0082 InversionTime $invt
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0083 NumberOfAverages $navg
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0084 ImagingFrequency $freq
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0085 ImagedNucleus $nucl
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0087 MagneticFieldStrength $field
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1250 ReceiveCoilName $rcoil
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1251 TransmitCoilName $tcoil
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0020x0105 NumberOfTemporalPositions $tpos
-  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0020x0110 TemporalResolution $tres
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0080 RepetitionTime "$rept"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0081 EchoTime "$echot"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0082 InversionTime "$invt"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0083 NumberOfAverages "$navg"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0084 ImagingFrequency "$freq"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0085 ImagedNucleus "$nucl"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x0087 MagneticFieldStrength "$field"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1250 ReceiveCoilName "$rcoil"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0018x1251 TransmitCoilName "$tcoil"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0020x0105 NumberOfTemporalPositions "$tpos"
+  write_row $ofile $pmbbid $studyuid $acc $series_number $series_name 0020x0110 TemporalResolution "$tres"
 
   return
 

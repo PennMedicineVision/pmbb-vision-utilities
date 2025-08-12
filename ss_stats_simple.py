@@ -363,14 +363,14 @@ def main():
 
     print("get_radiomics_stats")
     t1 = time.perf_counter()
-    rad_stats = get_radiomics_stats(img,seg,values,names)
+    rad_stats = get_radiomics_stats(img,seg,names,values)
     t2 = time.perf_counter()
     rad_time=t2-t1
     print(f"radiomics run time: {rad_time} seconds")
 
     print("get_simpleitk_stats")
     t3 = time.perf_counter()
-    sitk_stats = get_shape_stats(img,seg,values,names)
+    sitk_stats = get_shape_stats(img,seg,names,values)
     t4 = time.perf_counter()    
     itk_time=t4-t3
     print(f"SimpleITK run time: {itk_time} seconds")

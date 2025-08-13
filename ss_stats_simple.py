@@ -223,12 +223,13 @@ def get_radiomics_stats(img, seg, names, values):
         if len(np.unique(sitk.GetArrayViewFromImage(imask))) > 1:
             stats1=radiomics.firstorder.RadiomicsFirstOrder(img,imask).execute()
             stats2=radiomics.shape.RadiomicsShape(img,imask).execute()
-        idict={}
-        for k in stats1.keys():
-            idict['firstorder_'+k] = stats1[k]
-        for k in stats2.keys():
-            idict['shape_'+k] = stats2[k]
-        dict[name]=idict
+
+            idict={}
+            for k in stats1.keys():
+                idict['firstorder_'+k] = stats1[k]
+            for k in stats2.keys():
+                idict['shape_'+k] = stats2[k]
+            dict[name]=idict
 
     return(dict)
 
@@ -321,8 +322,6 @@ def get_shape_stats(img, mask, names, values):
                 dict["shape_PerimeterOnBorderRatio"] = stats.GetPerimeterOnBorderRatio(ival)
                 dict["shape_Perimeter"] = stats.GetPerimeter(ival)
 
-
-
                 dat[name]=dict
 
             index+=1
@@ -335,23 +334,46 @@ def get_shape_stats(img, mask, names, values):
 def main():
 
     my_parser = argparse.ArgumentParser(description='Summarize processed directory')
-    my_parser.add_argument('-i', '--input', type=str, help='input ct image', required=True)
+    my_parser.add_argument('-i', '--input', type=str, help='input image', required=True)
+    my_parser.add_argument('-r', '--resampled', type=str, help='synthseg resampled input', required=True)
     my_parser.add_argument('-o', '--output', type=str, help='output csv', nargs='+', required=True)
-    my_parser.add_argument('-s', '--seg', type=str, help='merged seg', required=True)
+    my_parser.add_argument('-s', '--seg', type=str, help='synthseg output labels', required=True)
+    my_parser.add_argument('-q', '--qc', type=str, help="synthseg output qc file", required=True)
+    
+    my_parser.add_argument('-t', '--threshold', type=float, help="Min QC needed to do stats", default=0.65, required=False)
     args = my_parser.parse_args()
 
+    # Check that inputs exist
     if not os.path.exists(args.seg):
         print("Input does not exist: "+args.seg)
         return(1)
-    if not os.path.exists(args.input):
-        print("Input does not exist: "+args.input)
-        return(1)        
+    #if not os.path.exists(args.input):
+    #    print("Input does not exist: "+args.input)
+    #    return(1)        
+    if not os.path.exists(args.qc):
+        print("QC does not exist:"+args.qc)
+        return(1)
 
-
-    # Merge labels from part1 and part2
-    # Higher index takes priority (this is how TS does it)
+    # Don't do stats on "bad" results
+    qc=pd.read_csv(args.qc)
+    do_stats=True
+    for j in range(8):
+        if qc.to_numpy()[0][j+1] < args.threshold:
+            do_stats=False
+    if not do_stats:
+        return(0)
+    
     seg = sitk.ReadImage(args.seg)
-    img = sitk.ReadImage(args.input)
+    img=None
+
+    # Use resampled if it exists, otherwise use original input
+    if os.path.exists(args.resampled):
+        img = sitk.ReadImage(args.resampled)
+    elif os.path.exists(args.input):
+        img = sitk.ReadImage(args.input)
+    else:
+        print("Input image not found")
+        return(0)
 
     img_basename = os.path.basename(args.input)
     img_basename = img_basename.split(".")[0]
